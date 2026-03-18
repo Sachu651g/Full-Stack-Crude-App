@@ -24,5 +24,4 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Videos (large binary files — add your own)
-client/public/videos/*.mp4
+# Videos — tracked in repo (files are small enough for GitHub)

@@ -1,0 +1,20 @@
+services:
+  # Backend — Node/Express API hosted on Render free tier
+  - type: web
+    name: nexusfinance-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false   # Set this manually in Render dashboard (your Supabase URL)
+      - key: JWT_SECRET
+        sync: false   # Set this manually in Render dashboard
+      - key: CORS_ORIGIN
+        sync: false   # Set to your Vercel frontend URL e.g. https://nexusfinance.vercel.app
+    healthCheckPath: /api/health

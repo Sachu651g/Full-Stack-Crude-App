@@ -16,10 +16,10 @@ app.use(express.json());
 // e.g. https://nexusfinance.vercel.app
 // In development it falls back to allowing all origins.
 const corsOrigin = process.env.CORS_ORIGIN;
-app.use(cors(corsOrigin ? {
-  origin: corsOrigin,
+app.use(cors({
+  origin: corsOrigin ? corsOrigin.split(',').map(o => o.trim()) : true,
   credentials: true,
-} : {}));
+}));
 
 // ---------------------------------------------------------------------------
 // Route mounts — each router is added in later tasks; placeholders are here

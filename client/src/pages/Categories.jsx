@@ -167,7 +167,7 @@ function Categories() {
     <div style={{ minHeight:'100vh', backgroundColor:'transparent', fontFamily:"'Inter',system-ui,sans-serif", padding:'32px 28px', boxSizing:'border-box', position:'relative' }}>
       <div style={{ position:'relative', zIndex:1 }}>
         <div style={{ marginBottom:'32px' }}>
-          <div style={{ fontSize:'12px', color:'rgba(99,102,241,0.8)', textTransform:'uppercase', letterSpacing:'0.15em', marginBottom:'6px', fontWeight:'600' }}>◈ NEXUS FINANCE AI</div>
+          <div style={{ fontSize:'12px', color:'rgba(99,102,241,0.8)', textTransform:'uppercase', letterSpacing:'0.15em', marginBottom:'6px', fontWeight:'600' }}>NEXUS FINANCE AI</div>
           <h1 style={{ margin:0, fontSize:'32px', fontWeight:'800', color:'#e2e8f0', letterSpacing:'-0.02em' }}>Categories</h1>
           <p style={{ margin:'6px 0 0', fontSize:'14px', color:'rgba(165,180,252,0.5)' }}>Organize your transactions with custom categories</p>
         </div>

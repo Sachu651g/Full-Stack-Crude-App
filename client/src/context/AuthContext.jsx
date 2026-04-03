@@ -24,10 +24,10 @@ const AuthContext = createContext({
  * and is never written to localStorage (Requirement 2.5).
  */
 export function AuthProvider({ children }) {
-  // user holds the decoded user info (id, email) extracted from the API response.
-  const [user, setUser] = useState(null);
-  // token holds the raw JWT string returned by the API.
-  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem('nexus_user') || 'null'); } catch { return null; }
+  });
+  const [token, setToken] = useState(() => sessionStorage.getItem('nexus_token') || null);
 
   /**
    * logout — clears the in-memory token and user.
@@ -38,8 +38,8 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
-    // Navigation to /login is handled by ProtectedRoute which re-evaluates
-    // whenever token becomes null.
+    sessionStorage.removeItem('nexus_token');
+    sessionStorage.removeItem('nexus_user');
   }, []);
 
   // Keep the Axios interceptor in sync with the latest token and logout callback
@@ -57,11 +57,13 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const response = await apiClient.post('/auth/login', { email, password });
     const { token: jwt, user: userData } = response.data;
-    setToken(jwt);
-    // Server now returns user object; fall back to decoding JWT payload
-    setUser(userData || (() => {
+    const resolvedUser = userData || (() => {
       try { return JSON.parse(atob(jwt.split('.')[1])); } catch { return { email }; }
-    })());
+    })();
+    setToken(jwt);
+    setUser(resolvedUser);
+    sessionStorage.setItem('nexus_token', jwt);
+    sessionStorage.setItem('nexus_user', JSON.stringify(resolvedUser));
   }, []);
 
   /**
@@ -73,10 +75,13 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (email, password) => {
     const response = await apiClient.post('/auth/register', { email, password });
     const { token: jwt, user: userData } = response.data;
-    setToken(jwt);
-    setUser(userData || (() => {
+    const resolvedUser = userData || (() => {
       try { return JSON.parse(atob(jwt.split('.')[1])); } catch { return { email }; }
-    })());
+    })();
+    setToken(jwt);
+    setUser(resolvedUser);
+    sessionStorage.setItem('nexus_token', jwt);
+    sessionStorage.setItem('nexus_user', JSON.stringify(resolvedUser));
   }, []);
 
   const value = { user, token, login, logout, register };

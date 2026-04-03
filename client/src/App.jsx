@@ -23,10 +23,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Intro screen — protected so only logged-in users can see it */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/intro" element={<IntroScreen />} />
-          </Route>
+          {/* Intro screen — skip directly to dashboard */}
+          <Route path="/intro" element={<Navigate to="/dashboard" replace />} />
 
           {/* Protected app routes */}
           <Route element={<ProtectedRoute />}>

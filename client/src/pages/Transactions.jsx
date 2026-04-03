@@ -1,5 +1,6 @@
-﻿// Transactions.jsx â€” Futuristic transactions page
+﻿// Transactions.jsx — Futuristic transactions page
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client.js';
 
 function injectStyles() {
@@ -9,7 +10,6 @@ function injectStyles() {
   s.textContent = `
     @keyframes spin { to{transform:rotate(360deg)} }
     @keyframes fadeInUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-    @keyframes gridMove { 0%{transform:translateY(0)} 100%{transform:translateY(60px)} }
     @keyframes slideIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
     .tx-row:hover { background:rgba(99,102,241,0.06) !important; }
     .tx-row { transition:background 0.15s; }
@@ -21,7 +21,21 @@ function injectStyles() {
 function formatCurrency(v) {
   return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}).format(parseFloat(v)||0);
 }
-function formatDate(s) { return s ? s.slice(0,10) : 'â€”'; }
+function fixEncoding(str) {
+  if (!str) return str;
+  // Fix common mojibake: â€" → —, â€™ → ', etc.
+  try {
+    return str
+      .replace(/â€"/g, '\u2014')
+      .replace(/â€™/g, '\u2019')
+      .replace(/â€œ/g, '\u201C')
+      .replace(/â€/g, '\u201D')
+      .replace(/Ã©/g, '\u00E9')
+      .replace(/Ã /g, '\u00E0');
+  } catch { return str; }
+}
+
+function formatDate(s) { return s ? s.slice(0,10) : '-'; }
 
 const EMPTY_FORM = { amount:'', type:'expense', category_id:'', date:'', description:'' };
 
@@ -31,7 +45,7 @@ function Modal({ title, onClose, children }) {
       <div onClick={e=>e.stopPropagation()} style={{background:'linear-gradient(135deg,#0a0f1e,#050b18)',border:'1px solid rgba(99,102,241,0.3)',borderRadius:'20px',padding:'28px',width:'100%',maxWidth:'480px',boxSizing:'border-box',boxShadow:'0 24px 80px rgba(0,0,0,0.6)',animation:'slideIn 0.2s ease both'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'24px'}}>
           <h2 style={{margin:0,fontSize:'20px',fontWeight:'800',color:'#e2e8f0'}}>{title}</h2>
-          <button onClick={onClose} style={{background:'rgba(99,102,241,0.1)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'8px',color:'rgba(165,180,252,0.6)',cursor:'pointer',padding:'4px 10px',fontSize:'16px'}}>âœ•</button>
+          <button onClick={onClose} style={{background:'rgba(99,102,241,0.1)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'8px',color:'rgba(165,180,252,0.6)',cursor:'pointer',padding:'4px 10px',fontSize:'16px'}}>x</button>
         </div>
         {children}
       </div>
@@ -89,7 +103,7 @@ function TransactionForm({ initialData, categories, onSave, onClose }) {
       <div style={{marginBottom:'14px'}}>
         <label style={labelStyle}>Category *</label>
         <select name="category_id" value={form.category_id} onChange={handleChange} style={inputStyle({cursor:'pointer'})} required>
-          <option value="">Select a categoryâ€¦</option>
+          <option value="">Select a category...</option>
           {categories.map(c=><option key={c.id} value={String(c.id)}>{c.name}</option>)}
         </select>
       </div>
@@ -99,13 +113,13 @@ function TransactionForm({ initialData, categories, onSave, onClose }) {
       </div>
       <div style={{marginBottom:'20px'}}>
         <label style={labelStyle}>Description</label>
-        <input name="description" type="text" value={form.description} onChange={handleChange} placeholder="Optional noteâ€¦" style={inputStyle()} />
+        <input name="description" type="text" value={form.description} onChange={handleChange} placeholder="Optional note..." style={inputStyle()} />
       </div>
-      {formError && <p style={{fontSize:'13px',color:'#f87171',marginBottom:'14px',background:'rgba(239,68,68,0.1)',padding:'10px 14px',borderRadius:'8px'}}>âš  {formError}</p>}
+      {formError && <p style={{fontSize:'13px',color:'#f87171',marginBottom:'14px',background:'rgba(239,68,68,0.1)',padding:'10px 14px',borderRadius:'8px'}}>{formError}</p>}
       <div style={{display:'flex',justifyContent:'flex-end',gap:'10px'}}>
         <button type="button" onClick={onClose} style={{padding:'10px 20px',fontSize:'14px',color:'rgba(165,180,252,0.6)',background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'10px',cursor:'pointer'}}>Cancel</button>
         <button type="submit" disabled={submitting} style={{padding:'10px 24px',fontSize:'14px',fontWeight:'700',color:'#fff',background:submitting?'rgba(99,102,241,0.4)':'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'10px',cursor:submitting?'not-allowed':'pointer',boxShadow:submitting?'none':'0 0 20px rgba(99,102,241,0.4)'}}>
-          {submitting?'Savingâ€¦':isEdit?'Save Changes':'Add Transaction'}
+          {submitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Transaction'}
         </button>
       </div>
     </form>
@@ -174,27 +188,25 @@ function Transactions() {
   function getCategoryName(tx) {
     if (tx.category_name) return tx.category_name;
     const c = categories.find(c=>c.id===tx.category_id);
-    return c?c.name:'â€”';
+    return c ? c.name : '-';
   }
 
   const filterInputStyle = { padding:'8px 12px', fontSize:'13px', background:'rgba(99,102,241,0.08)', border:'1px solid rgba(99,102,241,0.2)', borderRadius:'8px', color:'#e2e8f0', minWidth:'130px' };
 
   return (
     <div style={{minHeight:'100vh',backgroundColor:'transparent',fontFamily:"'Inter',system-ui,sans-serif",padding:'32px 28px',boxSizing:'border-box',position:'relative',overflow:'hidden'}}>
-      <div style={{display:'none'}} />
-
       <div style={{position:'relative',zIndex:1}}>
         {/* Header */}
         <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'28px',flexWrap:'wrap',gap:'16px'}}>
           <div>
-            <div style={{fontSize:'12px',color:'rgba(99,102,241,0.8)',textTransform:'uppercase',letterSpacing:'0.15em',marginBottom:'6px',fontWeight:'600'}}>â—ˆ NEXUS FINANCE AI</div>
+            <div style={{fontSize:'12px',color:'rgba(99,102,241,0.8)',textTransform:'uppercase',letterSpacing:'0.15em',marginBottom:'6px',fontWeight:'600'}}>NEXUS FINANCE AI</div>
             <h1 style={{margin:0,fontSize:'32px',fontWeight:'800',color:'#e2e8f0',letterSpacing:'-0.02em'}}>Transactions</h1>
             <p style={{margin:'6px 0 0',fontSize:'14px',color:'rgba(165,180,252,0.5)'}}>{totalCount} total records</p>
           </div>
           <button onClick={()=>{setEditingTx(null);setShowForm(true);}} style={{padding:'11px 22px',fontSize:'14px',fontWeight:'700',color:'#fff',background:'linear-gradient(135deg,#6366f1,#8b5cf6)',border:'none',borderRadius:'12px',cursor:'pointer',boxShadow:'0 0 24px rgba(99,102,241,0.4)',transition:'all 0.2s',alignSelf:'flex-start'}}
             onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 0 32px rgba(99,102,241,0.6)';}}
             onMouseLeave={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 0 24px rgba(99,102,241,0.4)';}}>
-            ï¼‹ Add Transaction
+            + Add Transaction
           </button>
         </div>
 
@@ -213,7 +225,7 @@ function Transactions() {
           ))}
         </div>
 
-        {error && <div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',padding:'12px 16px',marginBottom:'16px',color:'#fca5a5',fontSize:'14px'}}>âš  {error}</div>}
+        {error && <div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.3)',borderRadius:'10px',padding:'12px 16px',marginBottom:'16px',color:'#fca5a5',fontSize:'14px'}}>{error}</div>}
 
         {loading ? (
           <div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'200px'}}>
@@ -233,13 +245,13 @@ function Transactions() {
                 <tbody>
                   {transactions.length === 0 ? (
                     <tr><td colSpan={6} style={{padding:'48px 16px',textAlign:'center',color:'rgba(165,180,252,0.3)',fontSize:'14px'}}>
-                      <div style={{fontSize:'36px',marginBottom:'10px'}}>âŸ³</div>
+                      <div style={{fontSize:'36px',marginBottom:'10px'}}>~</div>
                       No transactions found. Add one to get started.
                     </td></tr>
                   ) : transactions.map((tx,i)=>(
                     <tr key={tx.id} className="tx-row" style={{borderBottom:'1px solid rgba(99,102,241,0.06)',animation:`fadeInUp 0.3s ease ${i*0.04}s both`}}>
                       <td style={{padding:'13px 16px',color:'rgba(165,180,252,0.7)',fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap'}}>{formatDate(tx.date)}</td>
-                      <td style={{padding:'13px 16px',color:'#e2e8f0',maxWidth:'200px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{tx.description||'â€”'}</td>
+                      <td style={{padding:'13px 16px',color:'#e2e8f0',maxWidth:'200px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{fixEncoding(tx.description) || '-'}</td>
                       <td style={{padding:'13px 16px',color:'rgba(165,180,252,0.7)'}}>{getCategoryName(tx)}</td>
                       <td style={{padding:'13px 16px'}}>
                         <span style={{display:'inline-block',padding:'3px 10px',borderRadius:'20px',fontSize:'11px',fontWeight:'700',textTransform:'uppercase',letterSpacing:'0.06em',background:tx.type==='income'?'rgba(16,185,129,0.15)':'rgba(239,68,68,0.15)',color:tx.type==='income'?'#6ee7b7':'#fca5a5',border:`1px solid ${tx.type==='income'?'rgba(16,185,129,0.3)':'rgba(239,68,68,0.3)'}`}}>{tx.type}</span>
@@ -255,13 +267,12 @@ function Transactions() {
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderTop:'1px solid rgba(99,102,241,0.1)',flexWrap:'wrap',gap:'10px'}}>
-                <span style={{fontSize:'13px',color:'rgba(165,180,252,0.4)'}}>Page {page} of {totalPages} Â· {totalCount} records</span>
+                <span style={{fontSize:'13px',color:'rgba(165,180,252,0.4)'}}>Page {page} of {totalPages} · {totalCount} records</span>
                 <div style={{display:'flex',gap:'6px'}}>
-                  <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} style={{padding:'6px 14px',fontSize:'13px',fontWeight:'600',background:page===1?'rgba(99,102,241,0.05)':'rgba(99,102,241,0.12)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'8px',cursor:page===1?'not-allowed':'pointer',color:page===1?'rgba(165,180,252,0.2)':'#a5b4fc'}}>â† Prev</button>
-                  <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} style={{padding:'6px 14px',fontSize:'13px',fontWeight:'600',background:page===totalPages?'rgba(99,102,241,0.05)':'rgba(99,102,241,0.12)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'8px',cursor:page===totalPages?'not-allowed':'pointer',color:page===totalPages?'rgba(165,180,252,0.2)':'#a5b4fc'}}>Next â†’</button>
+                  <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page===1} style={{padding:'6px 14px',fontSize:'13px',fontWeight:'600',background:page===1?'rgba(99,102,241,0.05)':'rgba(99,102,241,0.12)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'8px',cursor:page===1?'not-allowed':'pointer',color:page===1?'rgba(165,180,252,0.2)':'#a5b4fc'}}>Prev</button>
+                  <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={page===totalPages} style={{padding:'6px 14px',fontSize:'13px',fontWeight:'600',background:page===totalPages?'rgba(99,102,241,0.05)':'rgba(99,102,241,0.12)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'8px',cursor:page===totalPages?'not-allowed':'pointer',color:page===totalPages?'rgba(165,180,252,0.2)':'#a5b4fc'}}>Next</button>
                 </div>
               </div>
             )}
@@ -269,22 +280,20 @@ function Transactions() {
         )}
       </div>
 
-      {/* Add/Edit modal */}
       {showForm && (
-        <Modal title={editingTx?'Edit Transaction':'Add Transaction'} onClose={()=>{setShowForm(false);setEditingTx(null);}}>
+        <Modal title={editingTx ? 'Edit Transaction' : 'Add Transaction'} onClose={()=>{setShowForm(false);setEditingTx(null);}}>
           <TransactionForm initialData={editingTx} categories={categories} onSave={handleSave} onClose={()=>{setShowForm(false);setEditingTx(null);}} />
         </Modal>
       )}
 
-      {/* Delete confirm modal */}
       {deletingTx && (
         <Modal title="Delete Transaction" onClose={()=>setDeletingTx(null)}>
           <p style={{fontSize:'15px',color:'rgba(226,232,240,0.8)',marginBottom:'8px'}}>Are you sure you want to delete this transaction?</p>
-          <p style={{fontSize:'13px',color:'rgba(165,180,252,0.4)',marginBottom:'24px'}}>{deletingTx.description||getCategoryName(deletingTx)} â€” {formatCurrency(deletingTx.amount)} on {formatDate(deletingTx.date)}</p>
+          <p style={{fontSize:'13px',color:'rgba(165,180,252,0.4)',marginBottom:'24px'}}>{deletingTx.description || getCategoryName(deletingTx)} - {formatCurrency(deletingTx.amount)} on {formatDate(deletingTx.date)}</p>
           <div style={{display:'flex',justifyContent:'flex-end',gap:'10px'}}>
             <button onClick={()=>setDeletingTx(null)} style={{padding:'10px 20px',fontSize:'14px',color:'rgba(165,180,252,0.6)',background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:'10px',cursor:'pointer'}}>Cancel</button>
             <button onClick={handleDeleteConfirm} disabled={deleteInFlight} style={{padding:'10px 20px',fontSize:'14px',fontWeight:'700',color:'#fff',background:deleteInFlight?'rgba(239,68,68,0.3)':'linear-gradient(135deg,#ef4444,#dc2626)',border:'none',borderRadius:'10px',cursor:deleteInFlight?'not-allowed':'pointer'}}>
-              {deleteInFlight?'Deletingâ€¦':'Delete'}
+              {deleteInFlight ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </Modal>
@@ -294,4 +303,3 @@ function Transactions() {
 }
 
 export default Transactions;
-

@@ -54,6 +54,14 @@ function injectLayoutStyles() {
       cursor: pointer;
     }
 
+    /* Force recharts to be fully transparent — kills the white background */
+    .recharts-wrapper, .recharts-surface,
+    .recharts-wrapper svg, .recharts-surface svg { background: transparent !important; }
+    .recharts-cartesian-axis-tick text { fill: rgba(165,180,252,0.45) !important; }
+    .recharts-legend-wrapper { background: transparent !important; }
+    .recharts-default-legend { background: transparent !important; }
+    .recharts-tooltip-wrapper { z-index: 9999 !important; }
+
     .futuristic-btn:hover { transform:translateY(-1px); box-shadow:0 0 20px rgba(99,102,241,0.5) !important; }
     .futuristic-btn { transition:all 0.2s; }
     .card-hover:hover { transform:translateY(-3px); box-shadow:0 8px 32px rgba(99,102,241,0.25) !important; }
@@ -84,11 +92,11 @@ function injectLayoutStyles() {
 }
 
 const NAV_ITEMS = [
-  { to: '/dashboard',    label: 'Dashboard',    icon: '⬡', desc: 'Overview' },
-  { to: '/transactions', label: 'Transactions', icon: '⟳', desc: 'History' },
-  { to: '/categories',   label: 'Categories',   icon: '◈', desc: 'Manage' },
-  { to: '/reports',      label: 'Reports',      icon: '◉', desc: 'Analytics' },
-  { to: '/profile',      label: 'Profile',      icon: '👤', desc: 'Settings' },
+  { to: '/dashboard',    label: 'Dashboard',    icon: '▣', desc: 'Overview' },
+  { to: '/transactions', label: 'Transactions', icon: '↻', desc: 'History' },
+  { to: '/categories',   label: 'Categories',   icon: '◆', desc: 'Manage' },
+  { to: '/reports',      label: 'Reports',      icon: '●', desc: 'Analytics' },
+  { to: '/profile',      label: 'Profile',      icon: '★', desc: 'Settings' },
 ];
 
 // Generate stable particles once
